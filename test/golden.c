@@ -29,14 +29,14 @@ static void mk(int n, xr_grid_entity_packet_t *p)
 {
 	/* Lean: (n * 2654435761 + k * 40503) % 4000000000 - 2000000000, in Int64. */
 	long long f[3];
-	short g[6];
+	short g[9];
 	unsigned int u[5];
 
 	for (int k = 0; k < 3; k++) {
 		unsigned long long v = ((unsigned long long)n * 2654435761ULL + (unsigned long long)k * 40503ULL) % 4000000000ULL;
 		f[k] = (long long)v - 2000000000LL;
 	}
-	for (int k = 0; k < 6; k++)
+	for (int k = 0; k < 9; k++)
 		g[k] = (short)((long long)(((unsigned long long)(n + k)) % 65535ULL) - 32767LL);
 	for (int k = 0; k < 5; k++)
 		u[k] = (unsigned int)(((unsigned long long)n * 7ULL + (unsigned long long)k) % 4294967296ULL);
@@ -49,6 +49,9 @@ static void mk(int n, xr_grid_entity_packet_t *p)
 	p->vel_x = g[0];
 	p->vel_y = g[1];
 	p->vel_z = g[2];
+	p->accel_x = g[6];
+	p->accel_y = g[7];
+	p->accel_z = g[8];
 	p->hlc = u[2];
 	p->class_owner = u[3];
 	p->sub_index = u[4];

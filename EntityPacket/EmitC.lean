@@ -77,25 +77,32 @@ extern \"C\" {
 #define XR_PACKET_SIZE " ++ u SIZE ++ "
 #define XR_PACKET_PAYLOAD_OFFSET " ++ u PAYLOAD_OFFSET ++ "
 #define XR_PACKET_PAYLOAD_LEN " ++ u PAYLOAD_LEN ++ "
+#define XR_PACKET_RESERVED_LEN " ++ u RESERVED_LEN ++ "
 
 /* The i16 velocity scale, in micrometres per tick. A velocity field means nothing without the
  * scale it was divided by, so it travels with the layout rather than beside it. Same number as
  * PBVH_V_MAX_PHYSICAL_DEFAULT in lean-spatial-oracle's predictive_bvh.h. */
 #define XR_PACKET_V_MAX_PHYSICAL_DEFAULT_UM_PER_TICK " ++ u V_MAX_UM_PER_TICK ++ "
 
+/* The i16 acceleration scale, in micrometres per tick squared: twice the velocity scale. */
+#define XR_PACKET_A_MAX_PHYSICAL_UM_PER_TICK2 " ++ u A_MAX_UM_PER_TICK2 ++ "
+
 /* Where each field sits on the wire. Emitted from Codec.lean's own offsets. */
 #define XR_PACKET_OFF_GID " ++ off OFF_GID ++ "
 #define XR_PACKET_OFF_POS " ++ off OFF_POS ++ "
 #define XR_PACKET_OFF_VEL " ++ off OFF_VEL ++ "
+#define XR_PACKET_OFF_ACCEL " ++ off OFF_ACCEL ++ "
 #define XR_PACKET_OFF_HLC " ++ off OFF_HLC ++ "
 #define XR_PACKET_OFF_CLASS_OWNER " ++ off OFF_CLASS_OWNER ++ "
 #define XR_PACKET_OFF_SUB_INDEX " ++ off OFF_SUB_INDEX ++ "
 #define XR_PACKET_OFF_ROT " ++ off OFF_ROT ++ "
+#define XR_PACKET_OFF_RESERVED " ++ off OFF_RESERVED ++ "
 
 typedef struct {
 \tuint32_t gid;
 \tint64_t pos_um_x, pos_um_y, pos_um_z;
 \tint16_t vel_x, vel_y, vel_z;
+\tint16_t accel_x, accel_y, accel_z;
 \tuint32_t hlc;
 \tuint32_t class_owner; /* (class << 24) | owner */
 \tuint32_t sub_index;
@@ -105,7 +112,7 @@ typedef struct {
 
 " ++ putGet ++ "
 /* `out` must have room for XR_PACKET_SIZE bytes. Every byte is written, including the
- * unassigned gap at 36..39, so an encode never leaks whatever was in the caller's buffer. */
+ * reserved bytes at the tail, so an encode never leaks whatever was in the caller's buffer. */
 static inline void xr_grid_entity_packet_encode(const xr_grid_entity_packet_t *p, uint8_t *out) {
 \tfor (int i = 0; i < XR_PACKET_SIZE; i++) out[i] = 0;
 \txr__pu32(out + XR_PACKET_OFF_GID, p->gid);
@@ -115,6 +122,9 @@ static inline void xr_grid_entity_packet_encode(const xr_grid_entity_packet_t *p
 \txr__pi16(out + XR_PACKET_OFF_VEL + 0, p->vel_x);
 \txr__pi16(out + XR_PACKET_OFF_VEL + 2, p->vel_y);
 \txr__pi16(out + XR_PACKET_OFF_VEL + 4, p->vel_z);
+\txr__pi16(out + XR_PACKET_OFF_ACCEL + 0, p->accel_x);
+\txr__pi16(out + XR_PACKET_OFF_ACCEL + 2, p->accel_y);
+\txr__pi16(out + XR_PACKET_OFF_ACCEL + 4, p->accel_z);
 \txr__pu32(out + XR_PACKET_OFF_HLC, p->hlc);
 \txr__pu32(out + XR_PACKET_OFF_CLASS_OWNER, p->class_owner);
 \txr__pu32(out + XR_PACKET_OFF_SUB_INDEX, p->sub_index);
@@ -133,6 +143,9 @@ static inline void xr_grid_entity_packet_decode(const uint8_t *in, xr_grid_entit
 \tp->vel_x = xr__gi16(in + XR_PACKET_OFF_VEL + 0);
 \tp->vel_y = xr__gi16(in + XR_PACKET_OFF_VEL + 2);
 \tp->vel_z = xr__gi16(in + XR_PACKET_OFF_VEL + 4);
+\tp->accel_x = xr__gi16(in + XR_PACKET_OFF_ACCEL + 0);
+\tp->accel_y = xr__gi16(in + XR_PACKET_OFF_ACCEL + 2);
+\tp->accel_z = xr__gi16(in + XR_PACKET_OFF_ACCEL + 4);
 \tp->hlc = xr__gu32(in + XR_PACKET_OFF_HLC);
 \tp->class_owner = xr__gu32(in + XR_PACKET_OFF_CLASS_OWNER);
 \tp->sub_index = xr__gu32(in + XR_PACKET_OFF_SUB_INDEX);

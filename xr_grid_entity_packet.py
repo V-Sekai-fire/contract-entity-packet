@@ -18,21 +18,27 @@ from dataclasses import dataclass, field
 
 SIZE = 100
 PAYLOAD_OFFSET = 58
-PAYLOAD_LEN = 42
+PAYLOAD_LEN = 40
+RESERVED_LEN = 2
 
 # The i16 velocity scale, in micrometres per tick. A velocity field means nothing without the
 # scale it was divided by, so it travels with the layout rather than beside it. Same number as
 # PBVH_V_MAX_PHYSICAL_DEFAULT in lean-spatial-oracle's predictive_bvh.h.
 V_MAX_PHYSICAL_DEFAULT_UM_PER_TICK = 500000
 
+# The i16 acceleration scale, in micrometres per tick squared: twice the velocity scale.
+A_MAX_PHYSICAL_UM_PER_TICK2 = 1000000
+
 # Where each field sits on the wire. Emitted from Codec.lean's own offsets.
 OFF_GID = 0
 OFF_POS = 4
 OFF_VEL = 28
+OFF_ACCEL = 34
 OFF_HLC = 40
 OFF_CLASS_OWNER = 44
 OFF_SUB_INDEX = 48
 OFF_ROT = 52
+OFF_RESERVED = 98
 
 
 def _pu32(b: bytearray, off: int, v: int) -> None:
@@ -70,6 +76,9 @@ class Packet:
     vel_x: int = 0
     vel_y: int = 0
     vel_z: int = 0
+    accel_x: int = 0
+    accel_y: int = 0
+    accel_z: int = 0
     hlc: int = 0
     class_owner: int = 0  # (class << 24) | owner
     sub_index: int = 0
@@ -80,7 +89,7 @@ class Packet:
 
 
 def encode(p: Packet) -> bytes:
-    """Every byte is written, including the unassigned gap at 36..39, so an encode never
+    """Every byte is written, including the reserved bytes at the tail, so an encode never
     leaks whatever was in the caller's buffer."""
     b = bytearray(SIZE)
     _pu32(b, OFF_GID, p.gid)
@@ -90,6 +99,9 @@ def encode(p: Packet) -> bytes:
     _pi16(b, OFF_VEL + 0, p.vel_x)
     _pi16(b, OFF_VEL + 2, p.vel_y)
     _pi16(b, OFF_VEL + 4, p.vel_z)
+    _pi16(b, OFF_ACCEL + 0, p.accel_x)
+    _pi16(b, OFF_ACCEL + 2, p.accel_y)
+    _pi16(b, OFF_ACCEL + 4, p.accel_z)
     _pu32(b, OFF_HLC, p.hlc)
     _pu32(b, OFF_CLASS_OWNER, p.class_owner)
     _pu32(b, OFF_SUB_INDEX, p.sub_index)
@@ -112,6 +124,9 @@ def decode(data: bytes) -> Packet:
         vel_x=_gi16(data, OFF_VEL + 0),
         vel_y=_gi16(data, OFF_VEL + 2),
         vel_z=_gi16(data, OFF_VEL + 4),
+        accel_x=_gi16(data, OFF_ACCEL + 0),
+        accel_y=_gi16(data, OFF_ACCEL + 2),
+        accel_z=_gi16(data, OFF_ACCEL + 4),
         hlc=_gu32(data, OFF_HLC),
         class_owner=_gu32(data, OFF_CLASS_OWNER),
         sub_index=_gu32(data, OFF_SUB_INDEX),

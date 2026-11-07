@@ -22,26 +22,33 @@ extern "C" {
 
 #define XR_PACKET_SIZE 100
 #define XR_PACKET_PAYLOAD_OFFSET 58
-#define XR_PACKET_PAYLOAD_LEN 42
+#define XR_PACKET_PAYLOAD_LEN 40
+#define XR_PACKET_RESERVED_LEN 2
 
 /* The i16 velocity scale, in micrometres per tick. A velocity field means nothing without the
  * scale it was divided by, so it travels with the layout rather than beside it. Same number as
  * PBVH_V_MAX_PHYSICAL_DEFAULT in lean-spatial-oracle's predictive_bvh.h. */
 #define XR_PACKET_V_MAX_PHYSICAL_DEFAULT_UM_PER_TICK 500000
 
+/* The i16 acceleration scale, in micrometres per tick squared: twice the velocity scale. */
+#define XR_PACKET_A_MAX_PHYSICAL_UM_PER_TICK2 1000000
+
 /* Where each field sits on the wire. Emitted from Codec.lean's own offsets. */
 #define XR_PACKET_OFF_GID 0
 #define XR_PACKET_OFF_POS 4
 #define XR_PACKET_OFF_VEL 28
+#define XR_PACKET_OFF_ACCEL 34
 #define XR_PACKET_OFF_HLC 40
 #define XR_PACKET_OFF_CLASS_OWNER 44
 #define XR_PACKET_OFF_SUB_INDEX 48
 #define XR_PACKET_OFF_ROT 52
+#define XR_PACKET_OFF_RESERVED 98
 
 typedef struct {
 	uint32_t gid;
 	int64_t pos_um_x, pos_um_y, pos_um_z;
 	int16_t vel_x, vel_y, vel_z;
+	int16_t accel_x, accel_y, accel_z;
 	uint32_t hlc;
 	uint32_t class_owner; /* (class << 24) | owner */
 	uint32_t sub_index;
@@ -74,7 +81,7 @@ static inline int16_t xr__gi16(const uint8_t *b) {
 }
 
 /* `out` must have room for XR_PACKET_SIZE bytes. Every byte is written, including the
- * unassigned gap at 36..39, so an encode never leaks whatever was in the caller's buffer. */
+ * reserved bytes at the tail, so an encode never leaks whatever was in the caller's buffer. */
 static inline void xr_grid_entity_packet_encode(const xr_grid_entity_packet_t *p, uint8_t *out) {
 	for (int i = 0; i < XR_PACKET_SIZE; i++) out[i] = 0;
 	xr__pu32(out + XR_PACKET_OFF_GID, p->gid);
@@ -84,6 +91,9 @@ static inline void xr_grid_entity_packet_encode(const xr_grid_entity_packet_t *p
 	xr__pi16(out + XR_PACKET_OFF_VEL + 0, p->vel_x);
 	xr__pi16(out + XR_PACKET_OFF_VEL + 2, p->vel_y);
 	xr__pi16(out + XR_PACKET_OFF_VEL + 4, p->vel_z);
+	xr__pi16(out + XR_PACKET_OFF_ACCEL + 0, p->accel_x);
+	xr__pi16(out + XR_PACKET_OFF_ACCEL + 2, p->accel_y);
+	xr__pi16(out + XR_PACKET_OFF_ACCEL + 4, p->accel_z);
 	xr__pu32(out + XR_PACKET_OFF_HLC, p->hlc);
 	xr__pu32(out + XR_PACKET_OFF_CLASS_OWNER, p->class_owner);
 	xr__pu32(out + XR_PACKET_OFF_SUB_INDEX, p->sub_index);
@@ -102,6 +112,9 @@ static inline void xr_grid_entity_packet_decode(const uint8_t *in, xr_grid_entit
 	p->vel_x = xr__gi16(in + XR_PACKET_OFF_VEL + 0);
 	p->vel_y = xr__gi16(in + XR_PACKET_OFF_VEL + 2);
 	p->vel_z = xr__gi16(in + XR_PACKET_OFF_VEL + 4);
+	p->accel_x = xr__gi16(in + XR_PACKET_OFF_ACCEL + 0);
+	p->accel_y = xr__gi16(in + XR_PACKET_OFF_ACCEL + 2);
+	p->accel_z = xr__gi16(in + XR_PACKET_OFF_ACCEL + 4);
 	p->hlc = xr__gu32(in + XR_PACKET_OFF_HLC);
 	p->class_owner = xr__gu32(in + XR_PACKET_OFF_CLASS_OWNER);
 	p->sub_index = xr__gu32(in + XR_PACKET_OFF_SUB_INDEX);
