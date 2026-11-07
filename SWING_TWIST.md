@@ -49,9 +49,32 @@ These are the values `rot_check` prints.
 
 A 90 degree swing is half of pi, which is 16383.5 on the 32767 scale, so it rounds to 16383 in the float result. A 90 degree twist is a quarter of 65536 and gives 16384.
 
-## Floats
+## Coordinate frames
 
-The wire stays integral, but the converters use `Float`, `atan2`, `sin` and `cos`. A port may differ from the Lean result by one code, so the checks use a tolerance and the golden CSV holds no rotation converter output.
+The wire frame is Godot's: X right, Y up, -Z forward, right-handed. The slot names `rot_x`, `rot_y` and `rot_z` are positions in the wire, not axes, so the wire order stays as it is. Slot 1 is the swing about wire X, slot 2 the swing about wire Z, slot 3 the twist about wire Y.
+
+An engine with another frame is a `Frame`: a signed permutation that says where each wire axis comes from. `encodeRotIn f` and `decodeRotIn f` convert at the edge and call `encodeRot` and `decodeRot` unchanged.
+
+| Frame | Up | Forward | Handed | `det` |
+| --- | --- | --- | --- | --- |
+| `Frame.godot` | +Y | -Z | right | +1 |
+| `Frame.unity` | +Y | +Z | left | -1 |
+| `Frame.unreal` | +Z | +X | left | -1 |
+| `Frame.blender` | +Z | +Y | right | +1 |
+
+A rotation is an axial vector, so a left-handed frame flips the sign of the quaternion's vector part and leaves `w` alone. That is the only thing a rotation needs beyond what a position needs. Godot to Unity turns `(0.1, 0.2, 0.3, 0.4)` into `(-0.1, -0.2, 0.3, 0.4)`.
+
+`Basis` here is defined by its columns, `cx`, `cy` and `cz`, which are Godot's `Basis.x`, `Basis.y` and `Basis.z`. An engine that stores a matrix by rows must transpose it before building a `Basis`.
+
+## Precision
+
+`Float` in Lean is IEEE 754 binary64, the same as `double` and Godot's `real_t` in a `precision=double` build. The reference converters therefore compute in double, and `rot_check` asserts that `1 + 2^-52 > 1` and `1 + 2^-53 == 1`. A port must use `double`. GDScript `float` is already 64-bit.
+
+One code is about 96 microradians, and a single-precision `Quaternion` is already rounded by about 6e-8 before it reaches the converter. A float32 port would differ only where a value sits near a rounding boundary, by one code, but that is a statement about the arithmetic and has not been measured here.
+
+`sqrt` and the four arithmetic operations are correctly rounded everywhere. `atan2`, `sin` and `cos` are not, so two platforms can disagree in the last bits of a result. A port is expected to match within one code, and a golden file should avoid ties. A 90 degree swing is 16383.5 on the swing scale and lands on 16383 here only by the float result.
+
+Not done: no C, Python or GDScript converter is emitted, and nothing is checked against the engine's own `Basis`. The tolerance above is a design target until those exist.
 
 ## Verify
 
@@ -67,5 +90,6 @@ It runs 100,013 rotations (100,000 pseudo-random and 13 special cases) and check
 - `q` and `-q` agree within one code
 - the decoded quaternion has unit length
 - the golden cases above
+- for each of the four frames: the frame is a valid signed permutation, up is wire +Y and forward is wire -Z, the same physical rotation gives the same codes, a rotated vector agrees across frames, and both round trips hold in the engine frame
 
-Three planted defects must be caught, so a pass means the check can fail: swing and twist applied in the wrong order, the twist code dropped, and a 1 milliradian offset.
+Planted defects must be caught, so a pass means the check can fail: swing and twist applied in the wrong order, the twist code dropped, a 1 milliradian offset, a left-handed frame without the `det` sign, and the wrong frame.

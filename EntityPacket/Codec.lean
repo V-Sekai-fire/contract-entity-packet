@@ -246,4 +246,73 @@ def encodeRotBasis (b : Basis) : Int16 × Int16 × Int16 := encodeRot b.toQuat
 
 def decodeRotBasis (c : Int16 × Int16 × Int16) : Basis := Basis.ofQuat (decodeRot c)
 
+/-- An engine's coordinate frame, as a signed permutation onto the wire frame. Each field says
+    where one wire axis comes from: wire axis = sign * engine component `idx`. The wire frame
+    is Godot's: X right, Y up, -Z forward, right-handed. The slot names `rot_x`, `rot_y` and
+    `rot_z` are positions in the wire, not axes. -/
+structure Frame where
+  x : Nat × Int
+  y : Nat × Int
+  z : Nat × Int
+
+namespace Frame
+
+def godot : Frame := ⟨(0, 1), (1, 1), (2, 1)⟩
+
+/-- Y up, +Z forward, left-handed. -/
+def unity : Frame := ⟨(0, 1), (1, 1), (2, -1)⟩
+
+/-- X forward, Y right, Z up, left-handed. -/
+def unreal : Frame := ⟨(1, 1), (2, 1), (0, -1)⟩
+
+/-- X right, Y forward, Z up, right-handed. -/
+def blender : Frame := ⟨(0, 1), (2, 1), (1, -1)⟩
+
+def valid (f : Frame) : Bool :=
+  let idx := [f.x.1, f.y.1, f.z.1]
+  idx.all (· < 3) && f.x.1 != f.y.1 && f.x.1 != f.z.1 && f.y.1 != f.z.1
+    && [f.x.2, f.y.2, f.z.2].all (fun s => s == 1 || s == -1)
+
+/-- +1 for a right-handed engine frame and -1 for a left-handed one. -/
+def det (f : Frame) : Float :=
+  let parity : Int := match (f.x.1, f.y.1, f.z.1) with
+    | (0, 1, 2) | (1, 2, 0) | (2, 0, 1) => 1
+    | _ => -1
+  Float.ofInt (f.x.2 * f.y.2 * f.z.2 * parity)
+
+private def pick (v : Float × Float × Float) : Nat → Float
+  | 0 => v.1
+  | 1 => v.2.1
+  | _ => v.2.2
+
+def vecToWire (f : Frame) (v : Float × Float × Float) : Float × Float × Float :=
+  (Float.ofInt f.x.2 * pick v f.x.1, Float.ofInt f.y.2 * pick v f.y.1, Float.ofInt f.z.2 * pick v f.z.1)
+
+def vecFromWire (f : Frame) (w : Float × Float × Float) : Float × Float × Float :=
+  let comp (j : Nat) : Float :=
+    if f.x.1 == j then Float.ofInt f.x.2 * w.1
+    else if f.y.1 == j then Float.ofInt f.y.2 * w.2.1
+    else Float.ofInt f.z.2 * w.2.2
+  (comp 0, comp 1, comp 2)
+
+/-- A rotation vector is an axial vector: a left-handed frame flips its sign, so the vector part
+    of the quaternion carries `det` and `w` does not. -/
+def quatToWire (f : Frame) (q : Quat) : Quat :=
+  let v := f.vecToWire (q.x, q.y, q.z)
+  ⟨f.det * v.1, f.det * v.2.1, f.det * v.2.2, q.w⟩
+
+def quatFromWire (f : Frame) (q : Quat) : Quat :=
+  let v := f.vecFromWire (f.det * q.x, f.det * q.y, f.det * q.z)
+  ⟨v.1, v.2.1, v.2.2, q.w⟩
+
+end Frame
+
+def encodeRotIn (f : Frame) (q : Quat) : Int16 × Int16 × Int16 := encodeRot (f.quatToWire q)
+
+def decodeRotIn (f : Frame) (c : Int16 × Int16 × Int16) : Quat := f.quatFromWire (decodeRot c)
+
+def encodeRotBasisIn (f : Frame) (b : Basis) : Int16 × Int16 × Int16 := encodeRotIn f b.toQuat
+
+def decodeRotBasisIn (f : Frame) (c : Int16 × Int16 × Int16) : Basis := Basis.ofQuat (decodeRotIn f c)
+
 end EntityPacket

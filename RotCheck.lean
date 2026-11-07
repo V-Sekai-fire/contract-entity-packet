@@ -57,6 +57,7 @@ def main : IO UInt32 := do
   let check (name : String) (ok : Bool) (detail : String) : IO Nat := do
     IO.println s!"{if ok then "PASS" else "FAIL"} {name}: {detail}"
     pure (if ok then 0 else 1)
+  fails := fails + (← check "Float is binary64" ((1.0 : Float) + 2.220446049250313e-16 > 1.0 && (1.0 : Float) + 1.1102230246251565e-16 == 1.0) "1 + 2^-52 is above 1, 1 + 2^-53 is not")
   let (e, nan) := maxErr (fun q => decodeRot (encodeRot q)) qs
   fails := fails + (← check "round trip quat" (e < BOUND && nan == 0) s!"max error {e} rad over {qs.size}, bound {BOUND}, nan {nan}")
   let (eb, nanb) := maxErr (fun q => (decodeRotBasis (encodeRotBasis (Basis.ofQuat q))).toQuat) qs
@@ -81,5 +82,41 @@ def main : IO UInt32 := do
   fails := fails + (← check "planted: twist dropped is caught" (e2 > BOUND) s!"max error {e2}")
   let (e3, _) := maxErr (fun q => decodeRot (encodeRot (Quat.mul (axisAngle 1 0 0 1e-3) q))) qs
   fails := fails + (← check "planted: 1 mrad offset is caught" (e3 > BOUND) s!"max error {e3}")
+  let apply (b : Basis) (v : Float × Float × Float) : Float × Float × Float :=
+    (b.cx.1 * v.1 + b.cy.1 * v.2.1 + b.cz.1 * v.2.2,
+     b.cx.2.1 * v.1 + b.cy.2.1 * v.2.1 + b.cz.2.1 * v.2.2,
+     b.cx.2.2 * v.1 + b.cy.2.2 * v.2.1 + b.cz.2.2 * v.2.2)
+  let vdiff (a b : Float × Float × Float) : Float :=
+    max (Float.abs (a.1 - b.1)) (max (Float.abs (a.2.1 - b.2.1)) (Float.abs (a.2.2 - b.2.2)))
+  let noDet (f : Frame) (q : Quat) : Quat := let v := f.vecToWire (q.x, q.y, q.z); ⟨v.1, v.2.1, v.2.2, q.w⟩
+  let frames : Array (String × Frame × (Float × Float × Float) × (Float × Float × Float)) :=
+    #[("godot", Frame.godot, (0, 1, 0), (0, 0, -1)), ("unity", Frame.unity, (0, 1, 0), (0, 0, 1)),
+      ("unreal", Frame.unreal, (0, 0, 1), (1, 0, 0)), ("blender", Frame.blender, (0, 0, 1), (0, 1, 0))]
+  let v0 : Float × Float × Float := (0.3, -0.5, 0.8)
+  let sub := qs.extract 0 20000
+  for (name, f, up, fwd) in frames do
+    fails := fails + (← check s!"{name}: valid signed permutation" f.valid s!"det {f.det}")
+    let u := f.vecToWire up
+    let w := f.vecToWire fwd
+    fails := fails + (← check s!"{name}: up is wire +Y, forward is wire -Z" (vdiff u (0, 1, 0) < 1e-12 && vdiff w (0, 0, -1) < 1e-12) s!"up {u.1} {u.2.1} {u.2.2}, forward {w.1} {w.2.1} {w.2.2}")
+    let gap := sub.foldl (fun m q => max m (codeGap (encodeRotIn f (f.quatFromWire q)) (encodeRot q))) 0
+    fails := fails + (← check s!"{name}: same physical rotation, same codes" (gap == 0) s!"max gap {gap} LSB")
+    let vd := sub.foldl (fun m q =>
+      let qe := f.quatFromWire q
+      max m (vdiff (f.vecToWire (apply (Basis.ofQuat qe) v0)) (apply (Basis.ofQuat q) (f.vecToWire v0)))) 0.0
+    fails := fails + (← check s!"{name}: rotating a vector agrees across frames" (vd < 1e-9) s!"max difference {vd}")
+    let (er, _) := maxErr (fun q => decodeRotIn f (encodeRotIn f q)) sub
+    fails := fails + (← check s!"{name}: round trip in the engine frame" (er < BOUND) s!"max error {er} rad")
+    let (eb, _) := maxErr (fun q => (decodeRotBasisIn f (encodeRotBasisIn f (Basis.ofQuat q))).toQuat) sub
+    fails := fails + (← check s!"{name}: Basis round trip in the engine frame" (eb < BOUND) s!"max error {eb} rad")
+    if f.det < 0 then
+      let vdBad := sub.foldl (fun m q =>
+        let qe := f.quatFromWire q
+        max m (vdiff (f.vecToWire (apply (Basis.ofQuat qe) v0)) (apply (Basis.ofQuat (noDet f qe)) (f.vecToWire v0)))) 0.0
+      fails := fails + (← check s!"planted: {name} without the det sign is caught" (vdBad > 1e-3) s!"max difference {vdBad}")
+  let u := Frame.unity.quatToWire ⟨0.1, 0.2, 0.3, 0.4⟩
+  fails := fails + (← check "godot to unity flips x and y" (u.x == -0.1 && u.y == -0.2 && u.z == 0.3 && u.w == 0.4) s!"{u.x} {u.y} {u.z} {u.w}")
+  let gapWrong := sub.foldl (fun m q => max m (codeGap (encodeRotIn Frame.unreal (Frame.unity.quatFromWire q)) (encodeRot q))) 0
+  fails := fails + (← check "planted: the wrong frame is caught" (gapWrong > 1) s!"max gap {gapWrong} LSB")
   IO.println s!"rot check: {fails} failing"
   pure (if fails == 0 then 0 else 1)
