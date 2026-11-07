@@ -35,6 +35,16 @@ def V_MAX_UM_PER_TICK : Nat := 500000
     `32767 / (2 * PBVH_V_MAX_PHYSICAL_DEFAULT)`. The unit is read off that expression; the zone code does not state it. -/
 def A_MAX_UM_PER_TICK2 : Nat := 2 * V_MAX_UM_PER_TICK
 
+/-- The acceleration code for a bound, in micrometres per tick squared, rounded up in magnitude.
+    The ghost bound uses `|a|` as a ceiling, so a code that decodes below the true value makes the
+    bound unsound; round-to-nearest and truncation both do that. Saturates at full scale. -/
+def accelCodeUp (a : Int) : Int16 :=
+  let m := min 32767 ((a.natAbs * 32767 + A_MAX_UM_PER_TICK2 - 1) / A_MAX_UM_PER_TICK2)
+  Int16.ofInt (if a < 0 then -(Int.ofNat m) else Int.ofNat m)
+/-- Planted defect for the check: round to nearest. It must fail `accelCoversTrue`. -/
+def accelCodeNearest (a : Int) : Int16 :=
+  let m := min 32767 ((a.natAbs * 32767 * 2 + A_MAX_UM_PER_TICK2) / (2 * A_MAX_UM_PER_TICK2))
+  Int16.ofInt (if a < 0 then -(Int.ofNat m) else Int.ofNat m)
 abbrev Bytes := Array UInt8
 
 /-- little-endian put/get for the widths the packet uses. -/
