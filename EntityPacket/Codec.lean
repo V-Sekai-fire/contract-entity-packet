@@ -7,7 +7,9 @@ namespace EntityPacket
 
 def SIZE : Nat := 100
 def PAYLOAD_OFFSET : Nat := 58
-def PAYLOAD_LEN : Nat := SIZE - PAYLOAD_OFFSET   -- 42
+/-- Two bytes at the tail, kept for a field not yet needed. Senders write zero and receivers ignore them. -/
+def RESERVED_LEN : Nat := 2
+def PAYLOAD_LEN : Nat := SIZE - PAYLOAD_OFFSET - RESERVED_LEN   -- 40
 
 /-- Where each field sits. Named rather than written into `encode` and `decode` as literals,
     because a third reader wants them: `Emit.lean` emits a C header for the plane and the edge
@@ -16,16 +18,22 @@ def PAYLOAD_LEN : Nat := SIZE - PAYLOAD_OFFSET   -- 42
 def OFF_GID : Nat := 0
 def OFF_POS : Nat := 4          -- three Int64, 8 apart
 def OFF_VEL : Nat := 28         -- three Int16, 2 apart
+def OFF_ACCEL : Nat := 34       -- three Int16, 2 apart
 def OFF_HLC : Nat := 40
 def OFF_CLASS_OWNER : Nat := 44
 def OFF_SUB_INDEX : Nat := 48
 def OFF_ROT : Nat := 52         -- three Int16, 2 apart
+def OFF_RESERVED : Nat := SIZE - RESERVED_LEN   -- 98
 
 /-- The i16 velocity scale, in micrometres per tick. It belongs to the predictive BVH
     (`PBVH_V_MAX_PHYSICAL_DEFAULT` in `lean-spatial-oracle`) and is repeated here because the
     packet cannot be decoded without it: a velocity field is meaningless without the scale it
     was divided by, and a consumer that guessed would be wrong quietly. -/
 def V_MAX_UM_PER_TICK : Nat := 500000
+/-- The i16 acceleration scale, in micrometres per tick squared: full scale is twice the velocity full
+    scale. Copied from `A_SCALE` in `interactor-fabric-zone`'s `zone_core.h`, which is
+    `32767 / (2 * PBVH_V_MAX_PHYSICAL_DEFAULT)`. The unit is read off that expression; the zone code does not state it. -/
+def A_MAX_UM_PER_TICK2 : Nat := 2 * V_MAX_UM_PER_TICK
 
 abbrev Bytes := Array UInt8
 
@@ -65,11 +73,12 @@ structure Packet where
   gid       : UInt32
   posUm     : Int64 × Int64 × Int64   -- absolute micrometers
   vel       : Int16 × Int16 × Int16   -- PBVH-scaled i16
+  accel     : Int16 × Int16 × Int16   -- i16 against A_MAX_UM_PER_TICK2
   hlc       : UInt32
   classOwner: UInt32                   -- (class<<24)|owner
   subIndex  : UInt32
   rot       : Int16 × Int16 × Int16    -- swing-twist
-  payload   : Bytes                    -- 42 bytes
+  payload   : Bytes                    -- 40 bytes
   deriving Repr
 
 def encode (p : Packet) : Bytes := Id.run do
@@ -81,6 +90,9 @@ def encode (p : Packet) : Bytes := Id.run do
   b := putI16 b OFF_VEL p.vel.1
   b := putI16 b (OFF_VEL + 2) p.vel.2.1
   b := putI16 b (OFF_VEL + 4) p.vel.2.2
+  b := putI16 b OFF_ACCEL p.accel.1
+  b := putI16 b (OFF_ACCEL + 2) p.accel.2.1
+  b := putI16 b (OFF_ACCEL + 4) p.accel.2.2
   b := putU32 b OFF_HLC p.hlc
   b := putU32 b OFF_CLASS_OWNER p.classOwner
   b := putU32 b OFF_SUB_INDEX p.subIndex
@@ -96,6 +108,7 @@ def decode (b : Bytes) : Packet :=
   { gid := getU32 b OFF_GID
     posUm := (getI64 b OFF_POS, getI64 b (OFF_POS + 8), getI64 b (OFF_POS + 16))
     vel := (getI16 b OFF_VEL, getI16 b (OFF_VEL + 2), getI16 b (OFF_VEL + 4))
+    accel := (getI16 b OFF_ACCEL, getI16 b (OFF_ACCEL + 2), getI16 b (OFF_ACCEL + 4))
     hlc := getU32 b OFF_HLC
     classOwner := getU32 b OFF_CLASS_OWNER
     subIndex := getU32 b OFF_SUB_INDEX
