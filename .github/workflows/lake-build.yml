@@ -46,6 +46,16 @@ jobs:
       - name: The committed golden vectors are still the emitted ones
         run: diff -u packet_golden.csv build/packet_golden.csv
 
+      - name: The committed full-field golden vectors are still the emitted ones
+        run: diff -u packet_golden_full.csv build/packet_golden_full.csv
+
+      - name: Every full-field golden row decodes to its fields and encodes back
+        run: |
+          lake build golden_check
+          lake exe golden_check
+      - name: One flipped bit in a golden row is caught
+        run: "! lake exe golden_check plant"
+
       - name: The committed C header is still the emitted one
         run: diff -u xr_grid_entity_packet.h build/xr_grid_entity_packet.h
 

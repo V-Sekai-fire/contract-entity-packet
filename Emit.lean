@@ -24,6 +24,13 @@ def main : IO Unit := do
   IO.FS.writeFile "build/packet_golden.csv" out
   IO.println s!"wrote build/packet_golden.csv (64 vectors)"
 
+  let mut full := "hex,gid,pumx,pumy,pumz,velx,vely,velz,accx,accy,accz,hlc,class_owner,sub_index,rotx,roty,rotz,payload\n"
+  for n in [0:64] do
+    let p := mk n
+    full := full ++ s!"{hex (encode p)},{p.gid},{p.posUm.1},{p.posUm.2.1},{p.posUm.2.2},{p.vel.1},{p.vel.2.1},{p.vel.2.2},{p.accel.1},{p.accel.2.1},{p.accel.2.2},{p.hlc},{p.classOwner},{p.subIndex},{p.rot.1},{p.rot.2.1},{p.rot.2.2},{hex p.payload}\n"
+  IO.FS.writeFile "build/packet_golden_full.csv" full
+  IO.println s!"wrote build/packet_golden_full.csv (64 vectors, every field)"
+
   IO.FS.writeFile "build/xr_grid_entity_packet.h" cHeader
   IO.println s!"wrote build/xr_grid_entity_packet.h ({SIZE} bytes, payload at {PAYLOAD_OFFSET})"
 
