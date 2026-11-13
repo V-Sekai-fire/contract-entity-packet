@@ -91,7 +91,8 @@ def main : IO UInt32 := do
   let noDet (f : Frame) (q : Quat) : Quat := let v := f.vecToWire (q.x, q.y, q.z); ⟨v.1, v.2.1, v.2.2, q.w⟩
   let frames : Array (String × Frame × (Float × Float × Float) × (Float × Float × Float)) :=
     #[("godot", Frame.godot, (0, 1, 0), (0, 0, -1)), ("unity", Frame.unity, (0, 1, 0), (0, 0, 1)),
-      ("unreal", Frame.unreal, (0, 0, 1), (1, 0, 0)), ("blender", Frame.blender, (0, 0, 1), (0, 1, 0))]
+      ("unreal", Frame.unreal, (0, 0, 1), (1, 0, 0)), ("blender", Frame.blender, (0, 0, 1), (0, 1, 0)),
+      ("mujoco", Frame.mujoco, (0, 0, 1), (1, 0, 0))]
   let v0 : Float × Float × Float := (0.3, -0.5, 0.8)
   let sub := qs.extract 0 20000
   for (name, f, up, fwd) in frames do

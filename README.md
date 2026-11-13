@@ -8,7 +8,7 @@ Bytes 0-3 `gid`, 4-27 position (three Int64, micrometres), 28-33 `vel` (three In
 
 ## What it is for
 
-The packet carries no floats, so Lean models it exactly and Plausible roundtrip properties find codec gaps without an engine rebuild. `EntityPacket/Codec.lean` names each offset once; the encoder, the decoder and the C and Python emitters all read it. The emitted `xr_grid_entity_packet.h` and `xr_grid_entity_packet.py` are committed so a repository that vendors this one gets a codec without running Lean. Edit `Codec.lean` and replace them with what `packet_emit` writes rather than editing either by hand.
+The packet carries no floats, so Lean models it exactly and Plausible roundtrip properties find codec gaps without an engine rebuild. `EntityPacket/Codec.lean` names each offset once; the encoder, the decoder and the C and Python emitters all read it. The emitted `xr_grid_entity_packet.h` and `xr_grid_entity_packet.py` are committed so a repository that vendors this one gets a codec without running Lean. Edit `Codec.lean` and replace them with what `packet_emit` writes rather than editing either by hand. `packet_golden.csv` and `packet_golden_full.csv` are committed the same way: 64 known packets as hex, the second with a column for every field, checked by `lake exe golden_check`.
 
 ## Prediction kernel
 
