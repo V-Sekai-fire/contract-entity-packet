@@ -291,6 +291,8 @@ def unreal : Frame := ⟨(1, 1), (2, 1), (0, -1)⟩
 /-- X right, Y forward, Z up, right-handed. -/
 def blender : Frame := ⟨(0, 1), (2, 1), (1, -1)⟩
 
+def mujoco : Frame := ⟨(1, -1), (2, 1), (0, -1)⟩
+
 def valid (f : Frame) : Bool :=
   let idx := [f.x.1, f.y.1, f.z.1]
   idx.all (· < 3) && f.x.1 != f.y.1 && f.x.1 != f.z.1 && f.y.1 != f.z.1

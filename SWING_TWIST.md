@@ -61,6 +61,9 @@ An engine with another frame is a `Frame`: a signed permutation that says where 
 | `Frame.unity` | +Y | +Z | left | -1 |
 | `Frame.unreal` | +Z | +X | left | -1 |
 | `Frame.blender` | +Z | +Y | right | +1 |
+| `Frame.mujoco` | +Z | +X | right | +1 |
+
+`Frame.mujoco` is the frame of a physics engine whose world has +Z up and +X forward, so a body faces +X and its left is +Y. Its permutation is `⟨(1, -1), (2, 1), (0, -1)⟩`: wire X is engine -Y, wire Y is engine +Z and wire Z is engine -X. A vector `(x, y, z)` in the engine is `(-y, z, -x)` on the wire, and a wire vector `(a, b, c)` is `(-c, -a, b)` in the engine. The frame is right-handed, so the quaternion's vector part takes the same mapping with no sign change and `w` stays as it is. `Quat` here holds `x, y, z, w` in that order. MuJoCo stores a quaternion as `w, x, y, z`, so a caller reorders the components before `encodeRotIn Frame.mujoco` and after `decodeRotIn Frame.mujoco`.
 
 A rotation is an axial vector, so a left-handed frame flips the sign of the quaternion's vector part and leaves `w` alone. That is the only thing a rotation needs beyond what a position needs. Godot to Unity turns `(0.1, 0.2, 0.3, 0.4)` into `(-0.1, -0.2, 0.3, 0.4)`.
 
@@ -90,6 +93,6 @@ It runs 100,013 rotations (100,000 pseudo-random and 13 special cases) and check
 - `q` and `-q` agree within one code
 - the decoded quaternion has unit length
 - the golden cases above
-- for each of the four frames: the frame is a valid signed permutation, up is wire +Y and forward is wire -Z, the same physical rotation gives the same codes, a rotated vector agrees across frames, and both round trips hold in the engine frame
+- for each of the five frames: the frame is a valid signed permutation, up is wire +Y and forward is wire -Z, the same physical rotation gives the same codes, a rotated vector agrees across frames, and both round trips hold in the engine frame
 
 Planted defects must be caught, so a pass means the check can fail: swing and twist applied in the wrong order, the twist code dropped, a 1 milliradian offset, a left-handed frame without the `det` sign, and the wrong frame.
