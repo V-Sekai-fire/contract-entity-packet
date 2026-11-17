@@ -1,4 +1,5 @@
 import EntityPacket.Codec
+import EntityPacket.Classes
 
 namespace EntityPacket
 
@@ -42,6 +43,7 @@ SPDX-License-Identifier: MIT
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import IntEnum
 
 SIZE = " ++ u SIZE ++ "
 PAYLOAD_OFFSET = " ++ u PAYLOAD_OFFSET ++ "
@@ -66,6 +68,9 @@ OFF_CLASS_OWNER = " ++ off OFF_CLASS_OWNER ++ "
 OFF_SUB_INDEX = " ++ off OFF_SUB_INDEX ++ "
 OFF_ROT = " ++ off OFF_ROT ++ "
 OFF_RESERVED = " ++ off OFF_RESERVED ++ "
+
+
+" ++ classesPy ++ "
 
 
 def _pu32(b: bytearray, off: int, v: int) -> None:

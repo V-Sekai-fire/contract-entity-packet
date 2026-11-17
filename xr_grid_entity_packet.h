@@ -43,6 +43,17 @@ extern "C" {
 #define XR_PACKET_OFF_SUB_INDEX 48
 #define XR_PACKET_OFF_ROT 52
 #define XR_PACKET_OFF_RESERVED 98
+/* class byte of class_owner: (class << 24) | owner. A byte not listed here is not a class; drop the packet. */
+#define XR_PACKET_CLASS_UNSET 0
+#define XR_PACKET_CLASS_AVATAR 1
+#define XR_PACKET_CLASS_TRACKED_PART 2
+#define XR_PACKET_CLASS_PERSONA 3
+#define XR_PACKET_CLASS_PROP 4
+#define XR_PACKET_CLASS_CAMERA 5
+#define XR_PACKET_CLASS_LIGHT 6
+#define XR_PACKET_CLASS_NODE 7
+#define XR_PACKET_CLASS_COMMAND 128
+
 
 typedef struct {
 	uint32_t gid;

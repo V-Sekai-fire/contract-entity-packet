@@ -1,4 +1,5 @@
 import EntityPacket.Codec
+import EntityPacket.Classes
 
 namespace EntityPacket
 
@@ -97,6 +98,7 @@ extern \"C\" {
 #define XR_PACKET_OFF_SUB_INDEX " ++ off OFF_SUB_INDEX ++ "
 #define XR_PACKET_OFF_ROT " ++ off OFF_ROT ++ "
 #define XR_PACKET_OFF_RESERVED " ++ off OFF_RESERVED ++ "
+" ++ classesC ++ "
 
 typedef struct {
 \tuint32_t gid;
