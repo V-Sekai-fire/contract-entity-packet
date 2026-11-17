@@ -116,7 +116,7 @@ typedef struct {
 \tuint64_t hlc; /* (milliseconds << 16) | counter, see EntityPacket/Hlc.lean */
 \tuint32_t class_owner; /* (class << 24) | owner */
 \tuint32_t sub_index;
-\tint16_t rot_x, rot_y, rot_z; /* swing X, swing Z, twist Y, in the wire frame */
+\tint16_t swing_x, swing_z, twist; /* two integers of swing (wire X, wire Z), one of twist (wire Y) */
 \tuint8_t payload[XR_PACKET_PAYLOAD_LEN];
 } xr_grid_entity_packet_t;
 
@@ -138,9 +138,9 @@ static inline void xr_grid_entity_packet_encode(const xr_grid_entity_packet_t *p
 \txr__pu64(out + XR_PACKET_OFF_HLC, p->hlc);
 \txr__pu32(out + XR_PACKET_OFF_CLASS_OWNER, p->class_owner);
 \txr__pu32(out + XR_PACKET_OFF_SUB_INDEX, p->sub_index);
-\txr__pi16(out + XR_PACKET_OFF_ROT + 0, p->rot_x);
-\txr__pi16(out + XR_PACKET_OFF_ROT + 2, p->rot_y);
-\txr__pi16(out + XR_PACKET_OFF_ROT + 4, p->rot_z);
+\txr__pi16(out + XR_PACKET_OFF_ROT + 0, p->swing_x);
+\txr__pi16(out + XR_PACKET_OFF_ROT + 2, p->swing_z);
+\txr__pi16(out + XR_PACKET_OFF_ROT + 4, p->twist);
 \tfor (int i = 0; i < XR_PACKET_PAYLOAD_LEN; i++)
 \t\tout[XR_PACKET_PAYLOAD_OFFSET + i] = p->payload[i];
 }
@@ -159,9 +159,9 @@ static inline void xr_grid_entity_packet_decode(const uint8_t *in, xr_grid_entit
 \tp->hlc = xr__gu64(in + XR_PACKET_OFF_HLC);
 \tp->class_owner = xr__gu32(in + XR_PACKET_OFF_CLASS_OWNER);
 \tp->sub_index = xr__gu32(in + XR_PACKET_OFF_SUB_INDEX);
-\tp->rot_x = xr__gi16(in + XR_PACKET_OFF_ROT + 0);
-\tp->rot_y = xr__gi16(in + XR_PACKET_OFF_ROT + 2);
-\tp->rot_z = xr__gi16(in + XR_PACKET_OFF_ROT + 4);
+\tp->swing_x = xr__gi16(in + XR_PACKET_OFF_ROT + 0);
+\tp->swing_z = xr__gi16(in + XR_PACKET_OFF_ROT + 2);
+\tp->twist = xr__gi16(in + XR_PACKET_OFF_ROT + 4);
 \tfor (int i = 0; i < XR_PACKET_PAYLOAD_LEN; i++)
 \t\tp->payload[i] = in[XR_PACKET_PAYLOAD_OFFSET + i];
 }

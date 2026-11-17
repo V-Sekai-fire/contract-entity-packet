@@ -10,7 +10,7 @@
 | `rot.2.1` | swing rotation vector, Z component | 32767 per pi radians, linear |
 | `rot.2.2` | twist about +Y | 65536 per full turn, circular |
 
-One code is about 96 microradians in both scales. The slots are named `rot_x`, `rot_y` and `rot_z` in the emitted header. Slot 2 holds the swing Z component and slot 3 holds the twist about Y, so those names do not match the axes.
+One code is about 96 microradians in both scales. The slots are named `swing_x`, `swing_z` and `twist` in the emitted header and Python: two integers of swing (about wire X and wire Z) and one integer of twist (about wire Y).
 
 ## The convention
 
@@ -51,7 +51,7 @@ A 90 degree swing is half of pi, which is 16383.5 on the 32767 scale, so it roun
 
 ## Coordinate frames
 
-The wire frame is Godot's: X right, Y up, -Z forward, right-handed. The slot names `rot_x`, `rot_y` and `rot_z` are positions in the wire, not axes, so the wire order stays as it is. Slot 1 is the swing about wire X, slot 2 the swing about wire Z, slot 3 the twist about wire Y.
+The wire frame is Godot's: X right, Y up, -Z forward, right-handed. The slots are `swing_x` (swing about wire X), `swing_z` (swing about wire Z) and `twist` (twist about wire Y), in that wire order.
 
 An engine with another frame is a `Frame`: a signed permutation that says where each wire axis comes from. `encodeRotIn f` and `decodeRotIn f` convert at the edge and call `encodeRot` and `decodeRot` unchanged.
 

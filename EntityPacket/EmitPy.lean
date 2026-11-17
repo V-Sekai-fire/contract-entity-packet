@@ -122,9 +122,9 @@ class Packet:
     hlc: int = 0
     class_owner: int = 0  # (class << 24) | owner
     sub_index: int = 0
-    rot_x: int = 0  # swing X, swing Z, twist Y, in the wire frame
-    rot_y: int = 0
-    rot_z: int = 0
+    swing_x: int = 0  # two integers of swing (about wire X and wire Z) and one of twist (about wire Y)
+    swing_z: int = 0
+    twist: int = 0
     payload: bytes = field(default_factory=lambda: bytes(PAYLOAD_LEN))
 
 
@@ -145,9 +145,9 @@ def encode(p: Packet) -> bytes:
     _pu64(b, OFF_HLC, p.hlc)
     _pu32(b, OFF_CLASS_OWNER, p.class_owner)
     _pu32(b, OFF_SUB_INDEX, p.sub_index)
-    _pi16(b, OFF_ROT + 0, p.rot_x)
-    _pi16(b, OFF_ROT + 2, p.rot_y)
-    _pi16(b, OFF_ROT + 4, p.rot_z)
+    _pi16(b, OFF_ROT + 0, p.swing_x)
+    _pi16(b, OFF_ROT + 2, p.swing_z)
+    _pi16(b, OFF_ROT + 4, p.twist)
     pay = p.payload[:PAYLOAD_LEN]
     b[PAYLOAD_OFFSET : PAYLOAD_OFFSET + len(pay)] = pay
     return bytes(b)
@@ -170,9 +170,9 @@ def decode(data: bytes) -> Packet:
         hlc=_gu64(data, OFF_HLC),
         class_owner=_gu32(data, OFF_CLASS_OWNER),
         sub_index=_gu32(data, OFF_SUB_INDEX),
-        rot_x=_gi16(data, OFF_ROT + 0),
-        rot_y=_gi16(data, OFF_ROT + 2),
-        rot_z=_gi16(data, OFF_ROT + 4),
+        swing_x=_gi16(data, OFF_ROT + 0),
+        swing_z=_gi16(data, OFF_ROT + 2),
+        twist=_gi16(data, OFF_ROT + 4),
         payload=bytes(data[PAYLOAD_OFFSET : PAYLOAD_OFFSET + PAYLOAD_LEN]),
     )
 
