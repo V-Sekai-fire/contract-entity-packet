@@ -22,6 +22,8 @@ The top byte of `class_owner` is a class, and the low 24 bits are the owner. `En
 | 7 | `node` | a transform with nothing to draw | 0 |
 | 128 | `command` | a command that fits in one packet | the command type |
 
+The `command` class reads the packet differently, because a command has no position, velocity, acceleration or rotation. Its data is bytes 4-39 followed by bytes 56-97, read as one run of 78 bytes. `gid`, `hlc`, `class_owner`, `sub_index` and the reserved tail stay where they are. `sub_index` is split: the low 16 bits are the command type, the high 16 bits are how many bytes of the run are used. Anything larger goes to the chunk store and the run holds its digest.
+
 The numbers are the contract: never reuse or renumber one, only append. The proofs show that a class survives its byte, that no byte has two readings, that class and owner survive the field for every 24 bit owner, and that an unlisted byte decodes to nothing. `#guard` lines pin the numbers so that renumbering one fails the build.
 
 ## What it is for
