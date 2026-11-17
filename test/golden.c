@@ -55,9 +55,9 @@ static void mk(int n, xr_grid_entity_packet_t *p)
 	p->hlc = (((unsigned long long)1780000000000ULL + (unsigned long long)n * 7ULL) << 16) | (((unsigned long long)n * 1031ULL) % 65536ULL);
 	p->class_owner = u[3];
 	p->sub_index = u[4];
-	p->rot_x = g[3];
-	p->rot_y = g[4];
-	p->rot_z = g[5];
+	p->swing_x = g[3];
+	p->swing_z = g[4];
+	p->twist = g[5];
 	for (int i = 0; i < XR_PACKET_PAYLOAD_LEN; i++)
 		p->payload[i] = (unsigned char)((n + i * 31) % 256);
 }

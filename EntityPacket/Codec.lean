@@ -282,8 +282,8 @@ def decodeRotBasis (c : Int16 × Int16 × Int16) : Basis := Basis.ofQuat (decode
 
 /-- An engine's coordinate frame, as a signed permutation onto the wire frame. Each field says
     where one wire axis comes from: wire axis = sign * engine component `idx`. The wire frame
-    is Godot's: X right, Y up, -Z forward, right-handed. The slot names `rot_x`, `rot_y` and
-    `rot_z` are positions in the wire, not axes. -/
+    is Godot's: X right, Y up, -Z forward, right-handed. The rotation slots are
+    `swing_x`, `swing_z` and `twist` (about wire X, Z and Y). -/
 structure Frame where
   x : Nat × Int
   y : Nat × Int
