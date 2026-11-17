@@ -17,8 +17,8 @@ inductive Class where
   | avatar
   /-- A tracked part of a player: head, hands, hips, by `subIndex`. -/
   | trackedPart
-  /-- A simulated walker that is not a player. -/
-  | pedestrian
+  /-- A simulated character that is not a player. -/
+  | walker
   /-- A thing that moves and has a mesh: `payload` holds the mesh's digest and scale. -/
   | prop
   /-- A camera. -/
@@ -36,7 +36,7 @@ def Class.toByte : Class → UInt8
   | .unset => 0
   | .avatar => 1
   | .trackedPart => 2
-  | .pedestrian => 3
+  | .walker => 3
   | .prop => 4
   | .camera => 5
   | .light => 6
@@ -47,7 +47,7 @@ def Class.ofByte? : UInt8 → Option Class
   | 0 => some .unset
   | 1 => some .avatar
   | 2 => some .trackedPart
-  | 3 => some .pedestrian
+  | 3 => some .walker
   | 4 => some .prop
   | 5 => some .camera
   | 6 => some .light
@@ -57,7 +57,7 @@ def Class.ofByte? : UInt8 → Option Class
 
 /-- Every class, in wire order: what the emitters walk. -/
 def Class.all : List Class :=
-  [.unset, .avatar, .trackedPart, .pedestrian, .prop, .camera, .light, .node, .command]
+  [.unset, .avatar, .trackedPart, .walker, .prop, .camera, .light, .node, .command]
 
 /-- The packet field for a class and an owner. The owner is 24 bits; a larger one has no encoding. -/
 def classOwner (c : Class) (owner : UInt32) : Option UInt32 :=
@@ -120,7 +120,7 @@ theorem splitClassOwner_unlisted (w : UInt32) (h : (w >>> 24).toUInt8 ∉ Class.
 
 /-- The class names as the emitters write them: the constructor name in snake case, upper case for C. -/
 def Class.cName : Class → String
-  | .unset => "unset" | .avatar => "avatar" | .trackedPart => "tracked_part" | .pedestrian => "pedestrian"
+  | .unset => "unset" | .avatar => "avatar" | .trackedPart => "tracked_part" | .walker => "walker"
   | .prop => "prop" | .camera => "camera" | .light => "light" | .node => "node" | .command => "command"
 
 private def upper (s : String) : String := s.map Char.toUpper

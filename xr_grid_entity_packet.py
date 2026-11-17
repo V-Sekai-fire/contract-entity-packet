@@ -47,7 +47,7 @@ class Class(IntEnum):
     UNSET = 0
     AVATAR = 1
     TRACKED_PART = 2
-    PEDESTRIAN = 3
+    WALKER = 3
     PROP = 4
     CAMERA = 5
     LIGHT = 6
