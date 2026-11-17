@@ -15,6 +15,7 @@ SPDX-License-Identifier: MIT
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import IntEnum
 
 SIZE = 100
 PAYLOAD_OFFSET = 58
@@ -39,6 +40,20 @@ OFF_CLASS_OWNER = 44
 OFF_SUB_INDEX = 48
 OFF_ROT = 52
 OFF_RESERVED = 98
+
+
+class Class(IntEnum):
+    """The class byte of class_owner, (class << 24) | owner. A byte not listed is not a class: drop the packet."""
+    UNSET = 0
+    AVATAR = 1
+    TRACKED_PART = 2
+    PEDESTRIAN = 3
+    PROP = 4
+    CAMERA = 5
+    LIGHT = 6
+    NODE = 7
+    MIXER_COMMAND = 128
+
 
 
 def _pu32(b: bytearray, off: int, v: int) -> None:
