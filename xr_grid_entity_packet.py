@@ -54,6 +54,12 @@ class Class(IntEnum):
     NODE = 7
     COMMAND = 128
 
+# the command class: data runs at 4 and 56; sub_index = (used << 16) | type
+COMMAND_DATA_A_OFF = 4
+COMMAND_DATA_A_LEN = 36
+COMMAND_DATA_B_OFF = 56
+COMMAND_DATA_B_LEN = 42
+
 
 
 def _pu32(b: bytearray, off: int, v: int) -> None:

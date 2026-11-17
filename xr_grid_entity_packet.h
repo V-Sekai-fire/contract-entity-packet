@@ -53,6 +53,11 @@ extern "C" {
 #define XR_PACKET_CLASS_LIGHT 6
 #define XR_PACKET_CLASS_NODE 7
 #define XR_PACKET_CLASS_COMMAND 128
+/* the command class: data runs at 4 (len 36) and 56 (len 42); sub_index = (used << 16) | type */
+#define XR_PACKET_COMMAND_DATA_A_OFF 4
+#define XR_PACKET_COMMAND_DATA_A_LEN 36
+#define XR_PACKET_COMMAND_DATA_B_OFF 56
+#define XR_PACKET_COMMAND_DATA_B_LEN 42
 
 
 typedef struct {

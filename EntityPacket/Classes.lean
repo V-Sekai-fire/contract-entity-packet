@@ -118,6 +118,44 @@ theorem splitClassOwner_unlisted (w : UInt32) (h : (w >>> 24).toUInt8 ∉ Class.
 #guard classOwner .avatar 0x1000000 == none
 #guard classOwner .prop 7 == some 0x04000007
 
+/-! ### The `command` class reads the packet differently
+
+A command has no position, velocity, acceleration or rotation, so those bytes carry its data. The fields that every
+class shares stay where they are: `gid`, `hlc`, `classOwner`, `subIndex` and the reserved tail. Data is the bytes
+`COMMAND_DATA_A_OFF ..+ COMMAND_DATA_A_LEN` followed by `COMMAND_DATA_B_OFF ..+ COMMAND_DATA_B_LEN`, read as one run.
+`subIndex` is split in two: the low 16 bits are the command type and the high 16 bits are how many bytes of the run
+are used. -/
+def COMMAND_DATA_A_OFF : Nat := 4
+def COMMAND_DATA_A_LEN : Nat := 36
+def COMMAND_DATA_B_OFF : Nat := 56
+def COMMAND_DATA_B_LEN : Nat := 42
+def COMMAND_DATA_LEN : Nat := COMMAND_DATA_A_LEN + COMMAND_DATA_B_LEN
+
+-- The two runs stay clear of the shared fields (gid 0-3, hlc 40-47, class_owner 48-51, sub_index 52-55, reserved 98-99).
+#guard COMMAND_DATA_LEN == 78
+#guard COMMAND_DATA_A_OFF + COMMAND_DATA_A_LEN == 40
+#guard COMMAND_DATA_B_OFF + COMMAND_DATA_B_LEN == 98
+#guard COMMAND_DATA_A_OFF >= 4 && COMMAND_DATA_B_OFF >= 56
+
+def commandSubIndex (type used : UInt32) : Option UInt32 :=
+  if type < 0x10000 && used <= COMMAND_DATA_LEN.toUInt32 then some ((used <<< 16) ||| type) else none
+
+def splitCommandSubIndex (w : UInt32) : Option (UInt32 × UInt32) :=
+  if (w >>> 16) <= COMMAND_DATA_LEN.toUInt32 then some (w &&& 0xFFFF, w >>> 16) else none
+
+#guard commandSubIndex 101 78 == some 0x004E0065
+#guard commandSubIndex 101 79 == none
+#guard commandSubIndex 0x10000 1 == none
+#guard splitCommandSubIndex 0x004E0065 == some (101, 78)
+#guard splitCommandSubIndex 0x004F0065 == none
+
+theorem commandSubIndex_roundtrip (t u : UInt32) (h : t < 0x10000) (hu : u ≤ 78) :
+    ∃ w, commandSubIndex t u = some w ∧ splitCommandSubIndex w = some (t, u) := by
+  refine ⟨(u <<< 16) ||| t, by simp [commandSubIndex, COMMAND_DATA_LEN, COMMAND_DATA_A_LEN, COMMAND_DATA_B_LEN, h, hu], ?_⟩
+  have h1 : (((u <<< 16) ||| t) >>> 16) = u := by bv_decide
+  have h2 : (((u <<< 16) ||| t) &&& 0xFFFF) = t := by bv_decide
+  simp [splitCommandSubIndex, h1, h2, COMMAND_DATA_LEN, COMMAND_DATA_A_LEN, COMMAND_DATA_B_LEN, hu]
+
 /-- The class names as the emitters write them: the constructor name in snake case, upper case for C. -/
 def Class.cName : Class → String
   | .unset => "unset" | .avatar => "avatar" | .trackedPart => "tracked_part" | .persona => "persona"
@@ -128,12 +166,18 @@ private def upper (s : String) : String := s.map Char.toUpper
 /-- C: one `#define` per class, read off the same list the proofs are about. -/
 def classesC : String :=
   "/* class byte of class_owner: (class << 24) | owner. A byte not listed here is not a class; drop the packet. */\n" ++
-  String.intercalate "\n" (Class.all.map fun c => s!"#define XR_PACKET_CLASS_{upper c.cName} {c.toByte.toNat}") ++ "\n"
+  String.intercalate "\n" (Class.all.map fun c => s!"#define XR_PACKET_CLASS_{upper c.cName} {c.toByte.toNat}") ++ "\n" ++
+  s!"/* the command class: data runs at {COMMAND_DATA_A_OFF} (len {COMMAND_DATA_A_LEN}) and {COMMAND_DATA_B_OFF} (len {COMMAND_DATA_B_LEN}); sub_index = (used << 16) | type */\n" ++
+  s!"#define XR_PACKET_COMMAND_DATA_A_OFF {COMMAND_DATA_A_OFF}\n#define XR_PACKET_COMMAND_DATA_A_LEN {COMMAND_DATA_A_LEN}\n" ++
+  s!"#define XR_PACKET_COMMAND_DATA_B_OFF {COMMAND_DATA_B_OFF}\n#define XR_PACKET_COMMAND_DATA_B_LEN {COMMAND_DATA_B_LEN}\n"
 
 /-- Python: an `IntEnum`, and the two functions that split and make the field. -/
 def classesPy : String :=
   "class Class(IntEnum):\n" ++
   "    \"\"\"The class byte of class_owner, (class << 24) | owner. A byte not listed is not a class: drop the packet.\"\"\"\n" ++
-  String.intercalate "\n" (Class.all.map fun c => s!"    {upper c.cName} = {c.toByte.toNat}") ++ "\n"
+  String.intercalate "\n" (Class.all.map fun c => s!"    {upper c.cName} = {c.toByte.toNat}") ++ "\n\n" ++
+  s!"# the command class: data runs at {COMMAND_DATA_A_OFF} and {COMMAND_DATA_B_OFF}; sub_index = (used << 16) | type\n" ++
+  s!"COMMAND_DATA_A_OFF = {COMMAND_DATA_A_OFF}\nCOMMAND_DATA_A_LEN = {COMMAND_DATA_A_LEN}\n" ++
+  s!"COMMAND_DATA_B_OFF = {COMMAND_DATA_B_OFF}\nCOMMAND_DATA_B_LEN = {COMMAND_DATA_B_LEN}\n"
 
 end EntityPacket
