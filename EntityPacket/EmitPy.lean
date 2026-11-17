@@ -81,6 +81,14 @@ def _gu32(b: bytes, off: int) -> int:
     return int.from_bytes(b[off : off + 4], \"little\", signed=False)
 
 
+def _pu64(b: bytearray, off: int, v: int) -> None:
+    b[off : off + 8] = (v & 0xFFFFFFFFFFFFFFFF).to_bytes(8, \"little\", signed=False)
+
+
+def _gu64(b: bytes, off: int) -> int:
+    return int.from_bytes(b[off : off + 8], \"little\", signed=False)
+
+
 def _pi64(b: bytearray, off: int, v: int) -> None:
     b[off : off + 8] = (v & 0xFFFFFFFFFFFFFFFF).to_bytes(8, \"little\", signed=False)
 
@@ -134,7 +142,7 @@ def encode(p: Packet) -> bytes:
     _pi16(b, OFF_ACCEL + 0, p.accel_x)
     _pi16(b, OFF_ACCEL + 2, p.accel_y)
     _pi16(b, OFF_ACCEL + 4, p.accel_z)
-    _pu32(b, OFF_HLC, p.hlc)
+    _pu64(b, OFF_HLC, p.hlc)
     _pu32(b, OFF_CLASS_OWNER, p.class_owner)
     _pu32(b, OFF_SUB_INDEX, p.sub_index)
     _pi16(b, OFF_ROT + 0, p.rot_x)
@@ -159,7 +167,7 @@ def decode(data: bytes) -> Packet:
         accel_x=_gi16(data, OFF_ACCEL + 0),
         accel_y=_gi16(data, OFF_ACCEL + 2),
         accel_z=_gi16(data, OFF_ACCEL + 4),
-        hlc=_gu32(data, OFF_HLC),
+        hlc=_gu64(data, OFF_HLC),
         class_owner=_gu32(data, OFF_CLASS_OWNER),
         sub_index=_gu32(data, OFF_SUB_INDEX),
         rot_x=_gi16(data, OFF_ROT + 0),

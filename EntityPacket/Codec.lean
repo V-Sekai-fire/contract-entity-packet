@@ -6,10 +6,10 @@ namespace EntityPacket
     roundtrip properties find codec gaps without an engine rebuild. -/
 
 def SIZE : Nat := 100
-def PAYLOAD_OFFSET : Nat := 58
+def PAYLOAD_OFFSET : Nat := 62
 /-- Two bytes at the tail, kept for a field not yet needed. Senders write zero and receivers ignore them. -/
 def RESERVED_LEN : Nat := 2
-def PAYLOAD_LEN : Nat := SIZE - PAYLOAD_OFFSET - RESERVED_LEN   -- 40
+def PAYLOAD_LEN : Nat := SIZE - PAYLOAD_OFFSET - RESERVED_LEN   -- 36
 
 /-- Where each field sits. Named rather than written into `encode` and `decode` as literals,
     because a third reader wants them: `Emit.lean` emits a C header for the plane and the edge
@@ -19,10 +19,10 @@ def OFF_GID : Nat := 0
 def OFF_POS : Nat := 4          -- three Int64, 8 apart
 def OFF_VEL : Nat := 28         -- three Int16, 2 apart
 def OFF_ACCEL : Nat := 34       -- three Int16, 2 apart
-def OFF_HLC : Nat := 40
-def OFF_CLASS_OWNER : Nat := 44
-def OFF_SUB_INDEX : Nat := 48
-def OFF_ROT : Nat := 52         -- three Int16, 2 apart
+def OFF_HLC : Nat := 40         -- one UInt64: 48 bits of milliseconds, 16 bits of counter (Hlc.lean)
+def OFF_CLASS_OWNER : Nat := 48
+def OFF_SUB_INDEX : Nat := 52
+def OFF_ROT : Nat := 56         -- three Int16, 2 apart
 def OFF_RESERVED : Nat := SIZE - RESERVED_LEN   -- 98
 
 /-- The i16 velocity scale, in micrometres per tick. It belongs to the predictive BVH
@@ -59,6 +59,17 @@ def getU32 (b : Bytes) (off : Nat) : UInt32 := Id.run do
     v := v ||| ((b[off+i]!).toUInt32 <<< (UInt32.ofNat (i*8)))
   return v
 
+def putU64 (b : Bytes) (off : Nat) (v : UInt64) : Bytes := Id.run do
+  let mut b := b
+  for i in [0:8] do
+    b := b.set! (off + i) (((v >>> (UInt64.ofNat (i*8))) &&& 0xFF).toUInt8)
+  return b
+def getU64 (b : Bytes) (off : Nat) : UInt64 := Id.run do
+  let mut v : UInt64 := 0
+  for i in [0:8] do
+    v := v ||| ((b[off+i]!).toUInt64 <<< (UInt64.ofNat (i*8)))
+  return v
+
 def putI64 (b : Bytes) (off : Nat) (v : Int64) : Bytes := Id.run do
   let u : UInt64 := v.toUInt64
   let mut b := b
@@ -84,11 +95,11 @@ structure Packet where
   posUm     : Int64 × Int64 × Int64   -- absolute micrometers
   vel       : Int16 × Int16 × Int16   -- PBVH-scaled i16
   accel     : Int16 × Int16 × Int16   -- i16 against A_MAX_UM_PER_TICK2
-  hlc       : UInt32
+  hlc       : UInt64                   -- Hybrid Logical Clock, Hlc.lean
   classOwner: UInt32                   -- (class<<24)|owner
   subIndex  : UInt32
   rot       : Int16 × Int16 × Int16    -- swing-twist
-  payload   : Bytes                    -- 40 bytes
+  payload   : Bytes                    -- 36 bytes
   deriving Repr
 
 def encode (p : Packet) : Bytes := Id.run do
@@ -103,7 +114,7 @@ def encode (p : Packet) : Bytes := Id.run do
   b := putI16 b OFF_ACCEL p.accel.1
   b := putI16 b (OFF_ACCEL + 2) p.accel.2.1
   b := putI16 b (OFF_ACCEL + 4) p.accel.2.2
-  b := putU32 b OFF_HLC p.hlc
+  b := putU64 b OFF_HLC p.hlc
   b := putU32 b OFF_CLASS_OWNER p.classOwner
   b := putU32 b OFF_SUB_INDEX p.subIndex
   b := putI16 b OFF_ROT p.rot.1
@@ -119,7 +130,7 @@ def decode (b : Bytes) : Packet :=
     posUm := (getI64 b OFF_POS, getI64 b (OFF_POS + 8), getI64 b (OFF_POS + 16))
     vel := (getI16 b OFF_VEL, getI16 b (OFF_VEL + 2), getI16 b (OFF_VEL + 4))
     accel := (getI16 b OFF_ACCEL, getI16 b (OFF_ACCEL + 2), getI16 b (OFF_ACCEL + 4))
-    hlc := getU32 b OFF_HLC
+    hlc := getU64 b OFF_HLC
     classOwner := getU32 b OFF_CLASS_OWNER
     subIndex := getU32 b OFF_SUB_INDEX
     rot := (getI16 b OFF_ROT, getI16 b (OFF_ROT + 2), getI16 b (OFF_ROT + 4))

@@ -52,7 +52,7 @@ static void mk(int n, xr_grid_entity_packet_t *p)
 	p->accel_x = g[6];
 	p->accel_y = g[7];
 	p->accel_z = g[8];
-	p->hlc = u[2];
+	p->hlc = (((unsigned long long)1780000000000ULL + (unsigned long long)n * 7ULL) << 16) | (((unsigned long long)n * 1031ULL) % 65536ULL);
 	p->class_owner = u[3];
 	p->sub_index = u[4];
 	p->rot_x = g[3];

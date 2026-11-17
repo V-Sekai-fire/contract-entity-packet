@@ -32,6 +32,14 @@ private def putGet : String :=
 static inline uint32_t xr__gu32(const uint8_t *b) {
 \treturn (uint32_t)b[0] | ((uint32_t)b[1] << 8) | ((uint32_t)b[2] << 16) | ((uint32_t)b[3] << 24);
 }
+static inline void xr__pu64(uint8_t *b, uint64_t v) {
+\tfor (int i = 0; i < 8; i++) b[i] = (uint8_t)(v >> (i * 8));
+}
+static inline uint64_t xr__gu64(const uint8_t *b) {
+\tuint64_t v = 0;
+\tfor (int i = 0; i < 8; i++) v |= (uint64_t)b[i] << (i * 8);
+\treturn v;
+}
 static inline void xr__pi64(uint8_t *b, int64_t v) {
 \tuint64_t u = (uint64_t)v;
 \tfor (int i = 0; i < 8; i++) b[i] = (uint8_t)(u >> (i * 8));
@@ -105,7 +113,7 @@ typedef struct {
 \tint64_t pos_um_x, pos_um_y, pos_um_z;
 \tint16_t vel_x, vel_y, vel_z;
 \tint16_t accel_x, accel_y, accel_z;
-\tuint32_t hlc;
+\tuint64_t hlc; /* (milliseconds << 16) | counter, see EntityPacket/Hlc.lean */
 \tuint32_t class_owner; /* (class << 24) | owner */
 \tuint32_t sub_index;
 \tint16_t rot_x, rot_y, rot_z; /* swing X, swing Z, twist Y, in the wire frame */
@@ -127,7 +135,7 @@ static inline void xr_grid_entity_packet_encode(const xr_grid_entity_packet_t *p
 \txr__pi16(out + XR_PACKET_OFF_ACCEL + 0, p->accel_x);
 \txr__pi16(out + XR_PACKET_OFF_ACCEL + 2, p->accel_y);
 \txr__pi16(out + XR_PACKET_OFF_ACCEL + 4, p->accel_z);
-\txr__pu32(out + XR_PACKET_OFF_HLC, p->hlc);
+\txr__pu64(out + XR_PACKET_OFF_HLC, p->hlc);
 \txr__pu32(out + XR_PACKET_OFF_CLASS_OWNER, p->class_owner);
 \txr__pu32(out + XR_PACKET_OFF_SUB_INDEX, p->sub_index);
 \txr__pi16(out + XR_PACKET_OFF_ROT + 0, p->rot_x);
@@ -148,7 +156,7 @@ static inline void xr_grid_entity_packet_decode(const uint8_t *in, xr_grid_entit
 \tp->accel_x = xr__gi16(in + XR_PACKET_OFF_ACCEL + 0);
 \tp->accel_y = xr__gi16(in + XR_PACKET_OFF_ACCEL + 2);
 \tp->accel_z = xr__gi16(in + XR_PACKET_OFF_ACCEL + 4);
-\tp->hlc = xr__gu32(in + XR_PACKET_OFF_HLC);
+\tp->hlc = xr__gu64(in + XR_PACKET_OFF_HLC);
 \tp->class_owner = xr__gu32(in + XR_PACKET_OFF_CLASS_OWNER);
 \tp->sub_index = xr__gu32(in + XR_PACKET_OFF_SUB_INDEX);
 \tp->rot_x = xr__gi16(in + XR_PACKET_OFF_ROT + 0);

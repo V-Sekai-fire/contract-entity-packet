@@ -4,7 +4,7 @@ The Lean 4 source of truth for the fabric's fixed-size, all-integral entity pack
 
 ## Layout
 
-Bytes 0-3 `gid`, 4-27 position (three Int64, micrometres), 28-33 `vel` (three Int16 against `V_MAX_UM_PER_TICK`), 34-39 `accel` (three Int16 against `A_MAX_UM_PER_TICK2`, twice the velocity scale, micrometres per tick squared), 40-43 `hlc`, 44-47 `class_owner`, 48-51 `sub_index`, 52-57 `rot`, 58-97 payload (40 bytes), 98-99 reserved. Senders write zero to the reserved bytes and receivers ignore them. There is no version field: the dev stage has no backwards compatibility requirement.
+Bytes 0-3 `gid`, 4-27 position (three Int64, micrometres), 28-33 `vel` (three Int16 against `V_MAX_UM_PER_TICK`), 34-39 `accel` (three Int16 against `A_MAX_UM_PER_TICK2`, twice the velocity scale, micrometres per tick squared), 40-47 `hlc` (a traditional hybrid logical clock: 48 bits of milliseconds, 16 bits of counter), 48-51 `class_owner`, 52-55 `sub_index`, 56-61 `rot`, 62-97 payload (36 bytes), 98-99 reserved. Senders write zero to the reserved bytes and receivers ignore them. There is no version field: the dev stage has no backwards compatibility requirement.
 
 ## Classes
 
