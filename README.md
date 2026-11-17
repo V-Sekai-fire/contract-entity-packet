@@ -20,7 +20,7 @@ The top byte of `class_owner` is a class, and the low 24 bits are the owner. `En
 | 5 | `camera` | a camera | 0 |
 | 6 | `light` | a light | 0 |
 | 7 | `node` | a transform with nothing to draw | 0 |
-| 128 | `mixer_command` | a Mixer command that fits in one packet | the Mixer message type |
+| 128 | `command` | a command that fits in one packet | the command type |
 
 The numbers are the contract: never reuse or renumber one, only append. The proofs show that a class survives its byte, that no byte has two readings, that class and owner survive the field for every 24 bit owner, and that an unlisted byte decodes to nothing. `#guard` lines pin the numbers so that renumbering one fails the build.
 

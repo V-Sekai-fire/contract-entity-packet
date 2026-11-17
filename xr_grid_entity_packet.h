@@ -52,7 +52,7 @@ extern "C" {
 #define XR_PACKET_CLASS_CAMERA 5
 #define XR_PACKET_CLASS_LIGHT 6
 #define XR_PACKET_CLASS_NODE 7
-#define XR_PACKET_CLASS_MIXER_COMMAND 128
+#define XR_PACKET_CLASS_COMMAND 128
 
 
 typedef struct {

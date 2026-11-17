@@ -52,7 +52,7 @@ class Class(IntEnum):
     CAMERA = 5
     LIGHT = 6
     NODE = 7
-    MIXER_COMMAND = 128
+    COMMAND = 128
 
 
 

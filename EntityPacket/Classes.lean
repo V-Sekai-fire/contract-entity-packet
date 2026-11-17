@@ -9,7 +9,7 @@ namespace EntityPacket
     a receiver drops the packet, because guessing a meaning would be quietly wrong.
 
     `subIndex` is read through the class: for an object class it is the part of the object (0 is the whole), for
-    `mixerCommand` it is the Mixer message type. The payload is read through the class too. -/
+    `command` it is the command type. The payload is read through the class too. -/
 inductive Class where
   /-- Never a real packet: a zeroed buffer decodes to this and is refused. -/
   | unset
@@ -27,8 +27,8 @@ inductive Class where
   | light
   /-- A transform with nothing to draw (a Blender empty, a group, a collection). -/
   | node
-  /-- A Mixer command that fits in one packet: `subIndex` is the Mixer message type, `payload` the command. -/
-  | mixerCommand
+  /-- A command that fits in one packet: `subIndex` is the command's type, `payload` the command. -/
+  | command
   deriving DecidableEq, Repr
 
 /-- The wire byte of each class. These numbers are the contract: never reuse or renumber one. -/
@@ -41,7 +41,7 @@ def Class.toByte : Class → UInt8
   | .camera => 5
   | .light => 6
   | .node => 7
-  | .mixerCommand => 128
+  | .command => 128
 
 def Class.ofByte? : UInt8 → Option Class
   | 0 => some .unset
@@ -52,12 +52,12 @@ def Class.ofByte? : UInt8 → Option Class
   | 5 => some .camera
   | 6 => some .light
   | 7 => some .node
-  | 128 => some .mixerCommand
+  | 128 => some .command
   | _ => none
 
 /-- Every class, in wire order: what the emitters walk. -/
 def Class.all : List Class :=
-  [.unset, .avatar, .trackedPart, .pedestrian, .prop, .camera, .light, .node, .mixerCommand]
+  [.unset, .avatar, .trackedPart, .pedestrian, .prop, .camera, .light, .node, .command]
 
 /-- The packet field for a class and an owner. The owner is 24 bits; a larger one has no encoding. -/
 def classOwner (c : Class) (owner : UInt32) : Option UInt32 :=
@@ -113,7 +113,7 @@ theorem splitClassOwner_unlisted (w : UInt32) (h : (w >>> 24).toUInt8 ∉ Class.
 -- Written down, not derived: these numbers are on the wire, so a change to one must fail the build.
 #guard Class.all.map Class.toByte == [0, 1, 2, 3, 4, 5, 6, 7, 128]
 #guard (List.range 256).all fun n => (Class.ofByte? n.toUInt8).isSome == (n ∈ [0, 1, 2, 3, 4, 5, 6, 7, 128])
-#guard splitClassOwner 0x80000009 == some (.mixerCommand, 9)
+#guard splitClassOwner 0x80000009 == some (.command, 9)
 #guard splitClassOwner 0x09000001 == none
 #guard classOwner .avatar 0x1000000 == none
 #guard classOwner .prop 7 == some 0x04000007
@@ -121,7 +121,7 @@ theorem splitClassOwner_unlisted (w : UInt32) (h : (w >>> 24).toUInt8 ∉ Class.
 /-- The class names as the emitters write them: the constructor name in snake case, upper case for C. -/
 def Class.cName : Class → String
   | .unset => "unset" | .avatar => "avatar" | .trackedPart => "tracked_part" | .pedestrian => "pedestrian"
-  | .prop => "prop" | .camera => "camera" | .light => "light" | .node => "node" | .mixerCommand => "mixer_command"
+  | .prop => "prop" | .camera => "camera" | .light => "light" | .node => "node" | .command => "command"
 
 private def upper (s : String) : String := s.map Char.toUpper
 
