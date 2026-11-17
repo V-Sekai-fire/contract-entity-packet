@@ -33,7 +33,7 @@ func _init():
 		if abs(vel.x - float(c[5])/VEL_SCALE) > 1e-4: ok = false; why = "velx"
 		# payload ends
 		var pay: PackedByteArray = d["payload"]
-		if pay.size() != 40 or pay[0] != int(c[11]) or pay[39] != int(c[12]): ok = false; why = "payload"
+		if pay.size() != 36 or pay[0] != int(c[11]) or pay[35] != int(c[12]): ok = false; why = "payload"
 		if not ok:
 			bad += 1
 			if first == "": first = "row %d: %s" % [n, why]

@@ -18,8 +18,8 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 
 SIZE = 100
-PAYLOAD_OFFSET = 58
-PAYLOAD_LEN = 40
+PAYLOAD_OFFSET = 62
+PAYLOAD_LEN = 36
 RESERVED_LEN = 2
 
 # The i16 velocity scale, in micrometres per tick. A velocity field means nothing without the
@@ -36,9 +36,9 @@ OFF_POS = 4
 OFF_VEL = 28
 OFF_ACCEL = 34
 OFF_HLC = 40
-OFF_CLASS_OWNER = 44
-OFF_SUB_INDEX = 48
-OFF_ROT = 52
+OFF_CLASS_OWNER = 48
+OFF_SUB_INDEX = 52
+OFF_ROT = 56
 OFF_RESERVED = 98
 
 
@@ -62,6 +62,14 @@ def _pu32(b: bytearray, off: int, v: int) -> None:
 
 def _gu32(b: bytes, off: int) -> int:
     return int.from_bytes(b[off : off + 4], "little", signed=False)
+
+
+def _pu64(b: bytearray, off: int, v: int) -> None:
+    b[off : off + 8] = (v & 0xFFFFFFFFFFFFFFFF).to_bytes(8, "little", signed=False)
+
+
+def _gu64(b: bytes, off: int) -> int:
+    return int.from_bytes(b[off : off + 8], "little", signed=False)
 
 
 def _pi64(b: bytearray, off: int, v: int) -> None:
@@ -117,7 +125,7 @@ def encode(p: Packet) -> bytes:
     _pi16(b, OFF_ACCEL + 0, p.accel_x)
     _pi16(b, OFF_ACCEL + 2, p.accel_y)
     _pi16(b, OFF_ACCEL + 4, p.accel_z)
-    _pu32(b, OFF_HLC, p.hlc)
+    _pu64(b, OFF_HLC, p.hlc)
     _pu32(b, OFF_CLASS_OWNER, p.class_owner)
     _pu32(b, OFF_SUB_INDEX, p.sub_index)
     _pi16(b, OFF_ROT + 0, p.rot_x)
@@ -142,7 +150,7 @@ def decode(data: bytes) -> Packet:
         accel_x=_gi16(data, OFF_ACCEL + 0),
         accel_y=_gi16(data, OFF_ACCEL + 2),
         accel_z=_gi16(data, OFF_ACCEL + 4),
-        hlc=_gu32(data, OFF_HLC),
+        hlc=_gu64(data, OFF_HLC),
         class_owner=_gu32(data, OFF_CLASS_OWNER),
         sub_index=_gu32(data, OFF_SUB_INDEX),
         rot_x=_gi16(data, OFF_ROT + 0),

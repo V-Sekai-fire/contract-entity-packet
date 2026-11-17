@@ -21,8 +21,8 @@ extern "C" {
 #endif
 
 #define XR_PACKET_SIZE 100
-#define XR_PACKET_PAYLOAD_OFFSET 58
-#define XR_PACKET_PAYLOAD_LEN 40
+#define XR_PACKET_PAYLOAD_OFFSET 62
+#define XR_PACKET_PAYLOAD_LEN 36
 #define XR_PACKET_RESERVED_LEN 2
 
 /* The i16 velocity scale, in micrometres per tick. A velocity field means nothing without the
@@ -39,9 +39,9 @@ extern "C" {
 #define XR_PACKET_OFF_VEL 28
 #define XR_PACKET_OFF_ACCEL 34
 #define XR_PACKET_OFF_HLC 40
-#define XR_PACKET_OFF_CLASS_OWNER 44
-#define XR_PACKET_OFF_SUB_INDEX 48
-#define XR_PACKET_OFF_ROT 52
+#define XR_PACKET_OFF_CLASS_OWNER 48
+#define XR_PACKET_OFF_SUB_INDEX 52
+#define XR_PACKET_OFF_ROT 56
 #define XR_PACKET_OFF_RESERVED 98
 /* class byte of class_owner: (class << 24) | owner. A byte not listed here is not a class; drop the packet. */
 #define XR_PACKET_CLASS_UNSET 0
@@ -60,7 +60,7 @@ typedef struct {
 	int64_t pos_um_x, pos_um_y, pos_um_z;
 	int16_t vel_x, vel_y, vel_z;
 	int16_t accel_x, accel_y, accel_z;
-	uint32_t hlc;
+	uint64_t hlc; /* (milliseconds << 16) | counter, see EntityPacket/Hlc.lean */
 	uint32_t class_owner; /* (class << 24) | owner */
 	uint32_t sub_index;
 	int16_t rot_x, rot_y, rot_z; /* swing X, swing Z, twist Y, in the wire frame */
@@ -73,6 +73,14 @@ static inline void xr__pu32(uint8_t *b, uint32_t v) {
 }
 static inline uint32_t xr__gu32(const uint8_t *b) {
 	return (uint32_t)b[0] | ((uint32_t)b[1] << 8) | ((uint32_t)b[2] << 16) | ((uint32_t)b[3] << 24);
+}
+static inline void xr__pu64(uint8_t *b, uint64_t v) {
+	for (int i = 0; i < 8; i++) b[i] = (uint8_t)(v >> (i * 8));
+}
+static inline uint64_t xr__gu64(const uint8_t *b) {
+	uint64_t v = 0;
+	for (int i = 0; i < 8; i++) v |= (uint64_t)b[i] << (i * 8);
+	return v;
 }
 static inline void xr__pi64(uint8_t *b, int64_t v) {
 	uint64_t u = (uint64_t)v;
@@ -105,7 +113,7 @@ static inline void xr_grid_entity_packet_encode(const xr_grid_entity_packet_t *p
 	xr__pi16(out + XR_PACKET_OFF_ACCEL + 0, p->accel_x);
 	xr__pi16(out + XR_PACKET_OFF_ACCEL + 2, p->accel_y);
 	xr__pi16(out + XR_PACKET_OFF_ACCEL + 4, p->accel_z);
-	xr__pu32(out + XR_PACKET_OFF_HLC, p->hlc);
+	xr__pu64(out + XR_PACKET_OFF_HLC, p->hlc);
 	xr__pu32(out + XR_PACKET_OFF_CLASS_OWNER, p->class_owner);
 	xr__pu32(out + XR_PACKET_OFF_SUB_INDEX, p->sub_index);
 	xr__pi16(out + XR_PACKET_OFF_ROT + 0, p->rot_x);
@@ -126,7 +134,7 @@ static inline void xr_grid_entity_packet_decode(const uint8_t *in, xr_grid_entit
 	p->accel_x = xr__gi16(in + XR_PACKET_OFF_ACCEL + 0);
 	p->accel_y = xr__gi16(in + XR_PACKET_OFF_ACCEL + 2);
 	p->accel_z = xr__gi16(in + XR_PACKET_OFF_ACCEL + 4);
-	p->hlc = xr__gu32(in + XR_PACKET_OFF_HLC);
+	p->hlc = xr__gu64(in + XR_PACKET_OFF_HLC);
 	p->class_owner = xr__gu32(in + XR_PACKET_OFF_CLASS_OWNER);
 	p->sub_index = xr__gu32(in + XR_PACKET_OFF_SUB_INDEX);
 	p->rot_x = xr__gi16(in + XR_PACKET_OFF_ROT + 0);

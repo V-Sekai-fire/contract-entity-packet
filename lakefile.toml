@@ -25,3 +25,6 @@ root = "PredictCheck"
 [[lean_exe]]
 name = "golden_check"
 root = "GoldenCheck"
+[[lean_exe]]
+name = "hlc_check"
+root = "HlcCheck"
