@@ -15,7 +15,7 @@ The top byte of `class_owner` is a class, and the low 24 bits are the owner. `En
 | 0 | `unset` | never a real packet; a zeroed buffer | 0 |
 | 1 | `avatar` | a player's avatar root | 0 |
 | 2 | `tracked_part` | head, hands, hips of a player | the part |
-| 3 | `walker` | a simulated character that is not a player | 0 |
+| 3 | `persona` | a simulated persona that is not a player | 0 |
 | 4 | `prop` | a moving thing with a mesh; the payload names the mesh and scale | the part, 0 is the whole |
 | 5 | `camera` | a camera | 0 |
 | 6 | `light` | a light | 0 |
